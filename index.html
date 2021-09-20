@@ -1,0 +1,94 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+		<title>My Canvas Wonderland</title>
+		<script src='ffmpeg.min.js'></script>
+		<style>
+			html,body {
+				margin: 0;
+				padding: 0;
+				overflow: hidden;
+				font-family: sans-serif;
+				font-weight: 100;
+				text-align: center;
+				width: 100%;
+				height: 100%;
+				background-color: white;
+			}
+			canvas {
+				position: absolute;
+				top: 0px;
+				left: 0px;
+				width: 100%;
+				height: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<script>
+			var canvas = document.createElement('canvas');
+			canvas.width = 2048;
+			canvas.height = 2048;
+			canvas.style.width = '512px';
+			canvas.style.height = '512px';
+			var ctx = canvas.getContext('2d');
+
+			document.body.appendChild(canvas);
+
+			const fps = 60;
+			const duration = 10;
+			var captureFrame = 0;
+			var writtenFrame = 0;
+
+			const { createFFmpeg, fetchFile } = FFmpeg;
+			const ffmpeg = createFFmpeg({ log: true });
+
+			ffmpeg.load().then(tick);
+
+			var t = 0
+			function tick() {
+				const w = canvas.width, h = canvas.height;
+				ctx.fillStyle = 'white';
+				ctx.fillRect(0, 0, w, h);
+				ctx.strokeStyle = 'black';
+				for (var y = 0; y < 11; y++) {
+				for (var x = 0; x < 11; x++) {
+					ctx.beginPath();
+					ctx.arc
+					ctx.arc(
+						canvas.width * ((1+x)/12), 
+						canvas.width * ((1+y)/12), 
+						canvas.width / 28 * (0.1+Math.abs(Math.sin(x*0.1+y*0.1*0.5+t/1000/duration*Math.PI*2))),
+						0, Math.PI*2, false);
+					ctx.closePath();
+					ctx.lineWidth = 2+20*Math.pow(0.1+Math.abs(Math.sin(x*0.1+y*0.1*0.5+t/1000/duration*Math.PI*2)), 2);
+					ctx.stroke();
+				}
+				}
+
+				t += 1000/fps;
+
+				canvas.toBlob(async function(blob) {
+					const fn = `frame_${captureFrame.toString().padStart(4, '0')}.png`;
+					ffmpeg.FS('writeFile', fn, new Uint8Array(await blob.arrayBuffer()));
+					if (captureFrame < fps*duration) {
+						requestAnimationFrame(tick);
+					} else {
+						console.log("Done");
+						console.log("running ffmpeg");
+						await ffmpeg.run(...('-r 60 -i frame_%04d.png -vcodec libx264 -crf 15 -pix_fmt yuv420p output.mp4'.split(' ')));
+						const data = ffmpeg.FS('readFile', 'output.mp4');
+						const url = URL.createObjectURL(new Blob([data.buffer], { type: 'video/mp4' }));	
+						const a = document.createElement('a');
+						a.href = url;
+						a.download = document.title + '.mp4'
+						a.click();
+					}
+					captureFrame++;
+				});
+			};
+		</script>
+	</body>
+</html>

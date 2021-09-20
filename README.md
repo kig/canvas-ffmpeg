@@ -6,6 +6,10 @@ Uses <a href="https://github.com/ffmpegwasm/ffmpeg.wasm/">ffmpeg.wasm</a> for th
 ## Usage
 
 ```bash
+# If you already have serve, this is all you need:
+serve
+
+# Otherwise:
 # Install dependencies
 yarn
 

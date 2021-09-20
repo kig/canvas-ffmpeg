@@ -3,7 +3,7 @@
 	<head>
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
-		<title>My Canvas Wonderland</title>
+		<title>canvas-ffmpeg</title>
 		<script src='ffmpeg.min.js'></script>
 		<style>
 			html,body {
@@ -24,26 +24,57 @@
 				width: 100%;
 				height: 100%;
 			}
+			svg {
+				position: absolute;
+				left: 532px;
+				top: 0px;
+				width: 200px;
+				height: 120px;
+				z-index: 2;
+				background-color: rgba(255,255,255,0.1);
+				border-bottom-right-radius: 8px;
+			}
 		</style>
 	</head>
 	<body>
+		<svg viewBox="0 0 200 120" id="progress">
+			<text x="10" y="36" font="8pt Helvetica">Capturing Progress</text>
+			<rect x="10.5" y="40.5" width="180" height="10" stroke="black" fill="none" style="stroke-width: 1px;"></rect>
+			<rect id="capturingProgress" x="10.5" y="40.5" width="0" height="10" stroke="none" fill="black" style="stroke-width: 1px;"></rect>	
+			<text x="10" y="76" font="8pt Helvetica">Encoding Progress</text>
+			<rect x="10.5" y="80.5" width="180" height="10" stroke="black" fill="none" style="stroke-width: 1px;"></rect>	
+			<rect id="encodingProgress" x="10.5" y="80.5" width="0" height="10" stroke="none" fill="black" style="stroke-width: 1px;"></rect>	
+		</svg>
 		<script>
-			var canvas = document.createElement('canvas');
+			const capturingProgress = document.getElementById('capturingProgress');
+			const encodingProgress = document.getElementById('encodingProgress');
+
+			const canvas = document.createElement('canvas');
 			canvas.width = 2048;
 			canvas.height = 2048;
 			canvas.style.width = '512px';
 			canvas.style.height = '512px';
-			var ctx = canvas.getContext('2d');
+			const ctx = canvas.getContext('2d');
 
 			document.body.appendChild(canvas);
 
 			const fps = 60;
 			const duration = 10;
-			var captureFrame = 0;
-			var writtenFrame = 0;
+			let captureFrame = 0;
 
 			const { createFFmpeg, fetchFile } = FFmpeg;
 			const ffmpeg = createFFmpeg({ log: true });
+			ffmpeg.setProgress(({ ratio }) => {
+				if (ratio === 1) {
+					encodingProgress.setAttribute("width", "180");
+				}
+			});
+			ffmpeg.setLogger(({ type, message }) => {
+  				if (type === 'fferr' && /^frame=\s*\d+/.test(message)) {
+					const frame = parseInt(message.match(/^frame=\s*(\d+)/)[1]);
+				  	encodingProgress.setAttribute("width", (Math.min(1, frame/(fps*duration)) * 160).toString());
+				}
+			});
 
 			ffmpeg.load().then(tick);
 
@@ -73,6 +104,8 @@
 				canvas.toBlob(async function(blob) {
 					const fn = `frame_${captureFrame.toString().padStart(4, '0')}.png`;
 					ffmpeg.FS('writeFile', fn, new Uint8Array(await blob.arrayBuffer()));
+					captureFrame++;
+					capturingProgress.setAttribute("width", ((captureFrame / (fps*duration)) * 180).toString());
 					if (captureFrame < fps*duration) {
 						requestAnimationFrame(tick);
 					} else {
@@ -86,7 +119,6 @@
 						a.download = document.title + '.mp4'
 						a.click();
 					}
-					captureFrame++;
 				});
 			};
 		</script>

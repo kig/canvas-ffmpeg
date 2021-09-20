@@ -11,10 +11,10 @@ yarn
 
 # Run server
 yarn start
-
-# Open http://localhost:5000/ for a demo page that records a 10-second video of a 2048x2048 canvas animation. 
-# See <a href="blob/main/index.html">index.html</a> for the source. 
 ```
+Open http://localhost:5000/ for a demo page that records a 10-second video of a 2048x2048 canvas animation. 
+
+See <a href="blob/main/index.html">index.html</a> for the source. 
 
 ### Requirements
 
